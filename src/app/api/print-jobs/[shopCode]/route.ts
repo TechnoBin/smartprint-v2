@@ -91,7 +91,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const { data: shop } = await supabase.from("shops").select("id").eq("shop_code", shopCode).eq("active", true).maybeSingle();
     if (!shop) return NextResponse.json({ error: "Shop not found." }, { status: 404 });
     const { data: jobs, error } = await supabase.from("print_jobs")
-      .select("id,file_name,pages,print_type,copies,price,status,created_at")
+      .select("id,file_name,pages,original_pages,selected_pages,print_type,copies,price,status,created_at")
       .eq("shop_id", shop.id).eq("device_id", deviceId).order("created_at", { ascending: false }).limit(30);
     if (error) return NextResponse.json({ error: "History unavailable. Run the customer device migration first." }, { status: 500 });
     return NextResponse.json({ jobs: jobs ?? [] }, { headers: { "Cache-Control": "no-store" } });
