@@ -53,3 +53,24 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     return NextResponse.json({error:"Unexpected server error while submitting the job."},{status:500});
   }
 }
+
+
+export async function GET(request: NextRequest, { params }: { params: Promise<{ shopCode: string }> }) {
+  try {
+    const { shopCode } = await params;
+    const deviceId = request.nextUrl.searchParams.get("deviceId");
+    if (!deviceId || !/^[0-9a-f-]{36}$/i.test(deviceId)) {
+      return NextResponse.json({ error: "Invalid device ID." }, { status: 400 });
+    }
+    const supabase = createAdminClient();
+    const { data: shop } = await supabase.from("shops").select("id").eq("shop_code", shopCode).eq("active", true).maybeSingle();
+    if (!shop) return NextResponse.json({ error: "Shop not found." }, { status: 404 });
+    const { data: jobs, error } = await supabase.from("print_jobs")
+      .select("id,file_name,pages,print_type,copies,price,status,created_at")
+      .eq("shop_id", shop.id).eq("device_id", deviceId).order("created_at", { ascending: false }).limit(30);
+    if (error) return NextResponse.json({ error: "History unavailable. Run the customer device migration first." }, { status: 500 });
+    return NextResponse.json({ jobs: jobs ?? [] }, { headers: { "Cache-Control": "no-store" } });
+  } catch {
+    return NextResponse.json({ error: "Could not load history." }, { status: 500 });
+  }
+}
