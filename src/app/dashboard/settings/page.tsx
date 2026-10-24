@@ -1,0 +1,3 @@
+export default function SettingsPage() {
+  return <><div className="eyebrow">Setup</div><h1>Shop setup</h1><p className="muted">The first version is intentionally owner-first. Finish the Supabase setup before accepting real customer files.</p><div className="card"><h2>What to do next</h2><ol className="muted" style={{lineHeight:2,paddingLeft:22}}><li>Run the SQL schema in <code>supabase/schema.sql</code> using Supabase SQL Editor.</li><li>Create an owner account under Supabase → Authentication → Users.</li><li>Copy the owner's user ID.</li><li>Use the SQL Editor to insert a shop row with that ID as <code>owner_id</code>. See SETUP.md for the exact SQL.</li><li>Deploy only to a preview project until policies and uploads are tested.</li></ol></div></>;
+}
