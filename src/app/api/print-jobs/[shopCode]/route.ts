@@ -74,3 +74,24 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     return NextResponse.json({ error: "Could not load history." }, { status: 500 });
   }
 }
+
+
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ shopCode: string }> }) {
+  try {
+    const { shopCode } = await params;
+    const body = await request.json();
+    const deviceId = String(body.deviceId ?? "");
+    const customerName = typeof body.customerName === "string" ? body.customerName.trim().slice(0, 80) : "";
+    if (!/^[0-9a-f-]{36}$/i.test(deviceId) || !customerName) {
+      return NextResponse.json({ error: "Enter a valid name." }, { status: 400 });
+    }
+    const supabase = createAdminClient();
+    const { data: shop } = await supabase.from("shops").select("id").eq("shop_code", shopCode).eq("active", true).maybeSingle();
+    if (!shop) return NextResponse.json({ error: "Shop not found." }, { status: 404 });
+    const { error } = await supabase.from("print_jobs").update({ customer_name: customerName }).eq("shop_id", shop.id).eq("device_id", deviceId);
+    if (error) return NextResponse.json({ error: "Could not update the name on your previous jobs." }, { status: 500 });
+    return NextResponse.json({ ok: true });
+  } catch {
+    return NextResponse.json({ error: "Could not save the name." }, { status: 500 });
+  }
+}
