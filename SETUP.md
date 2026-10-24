@@ -7,10 +7,10 @@
 - Do not accept real customer documents until you have tested authorization, uploads, backups, and privacy.
 
 ## 1. GitHub / branch
-1. Open `TechnoBin/smartprint-v1` on GitHub.
-2. Switch to branch `version-2-nextjs`.
+1. Open `TechnoBin/smartprint-v2` on GitHub.
+2. Switch to branch `main`.
 3. Upload/extract the contents of this project into the repository root. The root should contain `package.json`, `src`, `supabase`, and this guide.
-4. Commit to `version-2-nextjs`, never `main` while developing.
+4. Commit to `main` while developing.
 
 ## 2. Supabase setup
 1. Create a **new test project** at Supabase.
@@ -44,7 +44,7 @@ On Vercel, open the V2 project → Settings → Environment Variables and add th
 
 ## 4. Deploy on Vercel
 1. Import the GitHub repository into Vercel.
-2. Select branch `version-2-nextjs`.
+2. Select branch `main`.
 3. Add environment variables before deployment.
 4. Deploy. Check the build log.
 5. Visit `/login` and sign in with the owner account.
