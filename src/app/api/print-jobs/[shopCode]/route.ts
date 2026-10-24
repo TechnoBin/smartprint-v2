@@ -10,14 +10,14 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const form = await request.formData();
     const file = form.get("file");
     const printType = form.get("printType");
-    const pagesInput = Number(form.get("pages"));
+    const pagesInput = Number(form.get("pages"));\n    const deviceId = String(form.get("deviceId") ?? "");
     const copies = Number(form.get("copies"));
     const customerName = String(form.get("customerName") ?? "").trim().slice(0,80);
 
     if (!(file instanceof File)) return NextResponse.json({error:"Choose a PDF file."},{status:400});
     if (file.size < 1 || file.size > 25 * 1024 * 1024) return NextResponse.json({error:"PDF must be 25 MB or smaller."},{status:400});
     if (printType !== "bw" && printType !== "color") return NextResponse.json({error:"Invalid print type."},{status:400});
-    if (!Number.isInteger(pagesInput) || pagesInput < 1 || pagesInput > 1000 || !Number.isInteger(copies) || copies < 1 || copies > 100) return NextResponse.json({error:"Invalid page count or copies."},{status:400});
+    if (!Number.isInteger(pagesInput) || pagesInput < 1 || pagesInput > 1000 || !Number.isInteger(copies) || copies < 1 || copies > 100 || !/^[0-9a-f-]{36}$/i.test(deviceId)) return NextResponse.json({error:"Invalid page count, copies, or device ID."},{status:400});
 
     const bytes = new Uint8Array(await file.arrayBuffer());
     if (new TextDecoder().decode(bytes.slice(0,5)) !== "%PDF-") return NextResponse.json({error:"The uploaded file is not a valid PDF."},{status:400});
@@ -40,8 +40,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     const {data:job,error:jobError}=await supabase.from("print_jobs").insert({
       id:jobId,shop_id:shop.id,file_name:safeName,storage_path:storagePath,
-      pages:actualPages,print_type:printType,copies,price,customer_name:customerName || null,status:"pending"
-    }).select("id,file_name,pages,print_type,copies,price,status,created_at").single();
+      pages:actualPages,original_pages:actualPages,selected_pages:"all",device_id:deviceId,print_type:printType,copies,price,customer_name:customerName || null,status:"pending"
+    }).select("id,file_name,pages,original_pages,selected_pages,print_type,copies,price,status,created_at").single();
 
     if(jobError) {
       await supabase.storage.from("print-files").remove([storagePath]);
