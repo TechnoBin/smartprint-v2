@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
 
   const { data, error } = await auth.admin
     .from("print_jobs")
-    .select("id,file_name,pages,original_pages,selected_pages,print_type,copies,price,status,created_at")
+    .select("id,file_name,pages,print_type,copies,price,status,created_at")
     .eq("shop_id", auth.device.shop_id)
     .eq("status", "pending")
     .order("created_at", { ascending: true })
