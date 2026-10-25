@@ -1,0 +1,6 @@
+{
+  "base_url": "https://smartprint-v2.vercel.app",
+  "token": "PASTE_THE_ONE_TIME_PAIRING_TOKEN_HERE",
+  "printer_name": "Epson L8050 Series",
+  "sumatra_path": "%LOCALAPPDATA%\\SumatraPDF\\SumatraPDF.exe"
+}
