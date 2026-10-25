@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { PDFDocument } from "pdf-lib";
 import { CheckCircle2, FileImage, FileText, Pencil, RefreshCw, Upload, ZoomIn, Crop } from "lucide-react";
 import { formatINR } from "@/lib/money";
@@ -62,6 +62,7 @@ export default function CustomerUpload({shopCode,shopName,bwPrice,colorPrice}:{s
   const [zoom,setZoom]=useState(1);
   const [cropX,setCropX]=useState(50);
   const [cropY,setCropY]=useState(50);
+  const cropDragStart=useRef<{x:number;y:number;cropX:number;cropY:number}|null>(null);
   const [originalPages,setOriginalPages]=useState(0);
   const [pageSelection,setPageSelection]=useState("all");
   const [type,setType]=useState<"bw"|"color">("bw");
@@ -161,13 +162,13 @@ export default function CustomerUpload({shopCode,shopName,bwPrice,colorPrice}:{s
         {mode==="pdf"?<div className="field"><label htmlFor="pdf">PDF document</label><label className="dropzone modern-dropzone" htmlFor="pdf"><Upload size={28}/><strong>{file?file.name:"Tap to choose your PDF"}</strong><span className="muted">{readingPdf?"Counting pages…":originalPages?`${originalPages} pages detected`:"PDF only · maximum 25 MB"}</span><input id="pdf" type="file" accept="application/pdf,.pdf" onChange={e=>void choosePdf(e.target.files?.[0]||null)}/></label></div>
         :<div className="field"><label htmlFor="images">Images for A4 printing</label><label className="dropzone modern-dropzone" htmlFor="images"><FileImage size={28}/><strong>{imageFiles.length?`${imageFiles.length} image${imageFiles.length===1?"":"s"} selected`:"Choose photos or images"}</strong><span className="muted">JPG, PNG or WebP · up to 20 images · 12 MB each</span><input id="images" type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={e=>chooseImages(e.target.files)}/></label>
           {imageFiles.length>0&&<div className="image-editor"><div className="editor-heading"><div><div className="eyebrow">Live preview</div><strong>Page {imageIndex+1} of {imageFiles.length}</strong></div><span className="a4-label">A4 · portrait</span></div>
-            <div className="a4-preview"><div className="a4-paper">{currentImageUrl&&<img src={currentImageUrl} alt={`A4 preview of ${imageFiles[imageIndex]?.name}`} style={{objectPosition:`${cropX}% ${cropY}%`,transform:`scale(${zoom})`,transformOrigin:`${cropX}% ${cropY}%`}}/>}</div></div>
+            <div className="a4-preview"><div className="a4-paper" onPointerDown={e=>{if(!currentImageUrl)return;e.currentTarget.setPointerCapture(e.pointerId);cropDragStart.current={x:e.clientX,y:e.clientY,cropX,cropY};}} onPointerMove={e=>{const start=cropDragStart.current;if(!start)return;const rect=e.currentTarget.getBoundingClientRect();setCropX(Math.max(0,Math.min(100,start.cropX-((e.clientX-start.x)/Math.max(1,rect.width))*100)));setCropY(Math.max(0,Math.min(100,start.cropY-((e.clientY-start.y)/Math.max(1,rect.height))*100)));}} onPointerUp={()=>{cropDragStart.current=null;}} onPointerCancel={()=>{cropDragStart.current=null;}}>{currentImageUrl&&<img src={currentImageUrl} alt={`A4 preview of ${imageFiles[imageIndex]?.name}`} draggable={false} style={{objectPosition:`${cropX}% ${cropY}%`,transform:`scale(${zoom})`,transformOrigin:`${cropX}% ${cropY}%`}}/>}</div></div>
             {imageFiles.length>1&&<div className="image-pagination"><button type="button" className="chip" disabled={imageIndex===0} onClick={()=>setImageIndex(i=>Math.max(0,i-1))}>Previous image</button><span>{imageIndex+1} / {imageFiles.length}</span><button type="button" className="chip" disabled={imageIndex===imageFiles.length-1} onClick={()=>setImageIndex(i=>Math.min(imageFiles.length-1,i+1))}>Next image</button></div>}
             <div className="crop-controls"><div className="crop-title"><Crop size={16}/><strong>Adjust crop</strong><button type="button" className="text-button" onClick={()=>{setZoom(1);setCropX(50);setCropY(50);}}>Reset</button></div>
               <label>Zoom <strong>{zoom.toFixed(1)}×</strong><input type="range" min="1" max="2.5" step="0.1" value={zoom} onChange={e=>setZoom(Number(e.target.value))}/></label>
               <label>Horizontal position <strong>{cropX}%</strong><input type="range" min="0" max="100" value={cropX} onChange={e=>setCropX(Number(e.target.value))}/></label>
               <label>Vertical position <strong>{cropY}%</strong><input type="range" min="0" max="100" value={cropY} onChange={e=>setCropY(Number(e.target.value))}/></label>
-              <p className="muted editor-help">The image is fitted to an A4 portrait page. Crop adjustments apply to all selected images. The same crop is used in the generated print PDF.</p>
+              <p className="muted editor-help">Drag the image inside the A4 preview to reposition it, or use the sliders for precise adjustment. Crop adjustments apply to all selected images and are used in the generated print PDF.</p>
             </div>
           </div>}
         </div>}
