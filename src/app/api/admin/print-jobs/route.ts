@@ -23,12 +23,12 @@ export async function DELETE(request: NextRequest) {
     if (!jobs?.length || jobs.length !== ids.length) return NextResponse.json({ error: "Some selected jobs were not found for this shop. Refresh and try again." }, { status: 404 });
 
     const paths = jobs.map(job => job.storage_path).filter(Boolean);
+    const { error: deleteError } = await admin.from("print_jobs").delete().eq("shop_id", shop.id).in("id", ids);
+    if (deleteError) return NextResponse.json({ error: "Database deletion failed. No jobs were deleted." }, { status: 500 });
     if (paths.length) {
       const { error: storageError } = await admin.storage.from("print-files").remove(paths);
-      if (storageError) return NextResponse.json({ error: "Files could not be removed, so no jobs were deleted. Try again." }, { status: 500 });
+      if (storageError) return NextResponse.json({ deleted: ids.length, warning: "Jobs were deleted from the database, but some stored files may need cleanup." });
     }
-    const { error: deleteError } = await admin.from("print_jobs").delete().eq("shop_id", shop.id).in("id", ids);
-    if (deleteError) return NextResponse.json({ error: "Files were removed but the database delete failed. Contact support before retrying." }, { status: 500 });
     return NextResponse.json({ deleted: ids.length });
   } catch {
     return NextResponse.json({ error: "Could not delete the selected jobs." }, { status: 500 });
