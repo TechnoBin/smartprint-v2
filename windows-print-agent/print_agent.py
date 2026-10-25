@@ -40,6 +40,7 @@ class PrintAgent:
         self.jobs = []
         self.dismissed = set()
         self.busy = False
+        self.prompt_scheduled = False
         self.closing = False
 
         root.title("SmartPrint V2 — Print Confirmation")
@@ -133,6 +134,7 @@ class PrintAgent:
                     self.render_jobs()
                     count = len([j for j in self.jobs if j["id"] not in self.dismissed])
                     self.status.set(f"{count} waiting job(s). Nothing prints without your approval.")
+                    self.schedule_prompt()
                 elif event == "printed":
                     self.dismissed.add(value)
                     self.status.set(f"Job {value} was sent to the Windows print queue. Check the printer output.")
@@ -163,6 +165,17 @@ class PrintAgent:
         if selected_id and self.tree.exists(selected_id):
             self.tree.selection_set(selected_id)
 
+    def schedule_prompt(self):
+        if self.busy or self.prompt_scheduled:
+            return
+        candidate = next((job for job in self.jobs if job["id"] not in self.dismissed and self.tree.exists(job["id"])), None)
+        if not candidate:
+            return
+        self.tree.selection_set(candidate["id"])
+        self.tree.focus(candidate["id"])
+        self.prompt_scheduled = True
+        self.root.after(150, self.confirm_print)
+
     def dismiss_selected(self):
         selection = self.tree.selection()
         if not selection:
@@ -173,6 +186,7 @@ class PrintAgent:
         self.status.set("Job hidden for this session; it remains pending in the admin queue.")
 
     def confirm_print(self):
+        self.prompt_scheduled = False
         selection = self.tree.selection()
         if not selection:
             messagebox.showinfo("Choose a job", "Select a job first.", parent=self.root)
