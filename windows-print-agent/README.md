@@ -17,11 +17,11 @@ This is the first supervised-printing prototype. It does **not** print automatic
 3. Edit `print-agent-config.json`: paste the one-time token and enter the exact Windows printer name. Do not commit the real config/token to GitHub or share it.
 4. Install SumatraPDF and confirm its executable path. If needed, change `sumatra_path` to the actual path.
 5. Run `python print_agent.py` from this folder.
-6. Select a pending job, review its details, and approve printing.
+6. Leave the app running. When a pending job arrives, a confirmation dialog appears automatically. Review the details and choose Yes to send it to the printer or No to leave it pending.
 
 ## Important behavior
 
-- The app polls every five seconds and never prints without a click and confirmation.
+- The app polls every five seconds and opens a confirmation dialog for a waiting job. It never prints without your approval. Choosing No hides that job for the current app session; it remains pending in the admin dashboard.
 - A job is changed from `pending` to `printing` only after approval. Only one station can claim a pending job.
 - Failed downloads or print-command errors are reported as `failed`; review them in the admin dashboard before retrying.
 - A successful SumatraPDF command means Windows accepted the print command, not proof that every sheet physically exited the printer. Check the printer/output before marking or retrying jobs manually.
