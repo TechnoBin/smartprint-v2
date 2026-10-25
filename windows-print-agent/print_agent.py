@@ -120,7 +120,7 @@ class PrintAgent:
 
     def refresh(self):
         self.status.set("Checking the print queue…")
-        self.fetch_jobs_worker()
+        threading.Thread(target=self.fetch_jobs_worker, daemon=True).start()
 
     def process_events(self):
         if self.closing:
