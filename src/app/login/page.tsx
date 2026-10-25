@@ -19,8 +19,7 @@ export default function LoginPage() {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
       router.push("/dashboard"); router.refresh();
-    } catch (err) { setMessage(err instanceof Error ? err.message : "Unable to sign in."); }
-    finally { setBusy(false); }
+    } catch (err) { setMessage(err instanceof Error ? err.message : "Unable to sign in."); setBusy(false); }
   }
 
   return <><header className="topbar"><div className="shell topbar-inner"><Link href="/" className="brand">Smart<span>Print</span></Link><span className="pill">Owner portal</span></div></header>
