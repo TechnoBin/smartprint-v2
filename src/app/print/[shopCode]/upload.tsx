@@ -47,7 +47,10 @@ async function imagesToA4Pdf(files:File[],zoom:number,x:number,y:number):Promise
     } finally { URL.revokeObjectURL(imageUrl); }
   }
   const bytes=await output.save();
-  return new File([bytes],`images-a4-${files.length}-pages.pdf`,{type:"application/pdf"});
+  // Copy into a definite ArrayBuffer so TypeScript accepts it as a BlobPart.
+  const pdfBuffer = new ArrayBuffer(bytes.byteLength);
+  new Uint8Array(pdfBuffer).set(bytes);
+  return new File([pdfBuffer],`images-a4-${files.length}-pages.pdf`,{type:"application/pdf"});
 }
 
 export default function CustomerUpload({shopCode,shopName,bwPrice,colorPrice}:{shopCode:string;shopName:string;bwPrice:number;colorPrice:number}) {
