@@ -7,6 +7,8 @@ import { formatINR } from "@/lib/money";
 
 type Job = { id:string; file_name:string; pages:number; original_pages?:number; selected_pages?:string; print_type:string; copies:number; price:number; status:string; created_at:string };
 type UploadMode = "pdf" | "image";
+type ImageEdit = { zoom:number; x:number; y:number };
+const DEFAULT_IMAGE_EDIT:ImageEdit={zoom:1,x:50,y:50};
 
 function selectedPageIndexes(input:string,total:number):number[] {
   const value=input.trim().toLowerCase();
@@ -26,7 +28,7 @@ function selectedPageIndexes(input:string,total:number):number[] {
   return [...selected].sort((a,b)=>a-b);
 }
 
-async function imagesToA4Pdf(files:File[],zoom:number,x:number,y:number):Promise<File> {
+async function imagesToA4Pdf(files:File[],edits:ImageEdit[]):Promise<File> {
   const output=await PDFDocument.create();
   const width=1240,height=1754;
   for(const file of files) {
@@ -37,9 +39,10 @@ async function imagesToA4Pdf(files:File[],zoom:number,x:number,y:number):Promise
       const canvas=document.createElement("canvas");canvas.width=width;canvas.height=height;
       const ctx=canvas.getContext("2d");if(!ctx)throw new Error("Image editing is not supported in this browser.");
       ctx.fillStyle="#ffffff";ctx.fillRect(0,0,width,height);
-      const scale=Math.max(width/image.naturalWidth,height/image.naturalHeight)*zoom;
+      const edit=edits[files.indexOf(file)]||DEFAULT_IMAGE_EDIT;
+      const scale=Math.min(width/image.naturalWidth,height/image.naturalHeight)*edit.zoom;
       const drawWidth=image.naturalWidth*scale,drawHeight=image.naturalHeight*scale;
-      ctx.drawImage(image,-(drawWidth-width)*(x/100),-(drawHeight-height)*(y/100),drawWidth,drawHeight);
+      ctx.drawImage(image,width*(edit.x/100)-drawWidth/2,height*(edit.y/100)-drawHeight/2,drawWidth,drawHeight);
       const blob=await new Promise<Blob>((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(new Error("Could not prepare the image.")),"image/png"));
       const png=await output.embedPng(await blob.arrayBuffer());
       const page=output.addPage([595.28,841.89]);
@@ -59,10 +62,17 @@ export default function CustomerUpload({shopCode,shopName,bwPrice,colorPrice}:{s
   const [imageFiles,setImageFiles]=useState<File[]>([]);
   const [imageUrls,setImageUrls]=useState<string[]>([]);
   const [imageIndex,setImageIndex]=useState(0);
-  const [zoom,setZoom]=useState(1);
-  const [cropX,setCropX]=useState(50);
-  const [cropY,setCropY]=useState(50);
-  const cropDragStart=useRef<{x:number;y:number;cropX:number;cropY:number}|null>(null);
+  const [imageEdits,setImageEdits]=useState<ImageEdit[]>([]);
+  const [editScope,setEditScope]=useState<"all"|"single">("all");
+  const cropDragStart=useRef<{x:number;y:number;imageX:number;imageY:number}|null>(null);
+  const activeEdit=imageEdits[imageIndex]||DEFAULT_IMAGE_EDIT;
+  function updateImageEdit<K extends keyof ImageEdit>(key:K,value:ImageEdit[K]) {
+    setImageEdits(previous=>previous.map((edit,index)=>editScope==="all"||index===imageIndex?{...edit,[key]:value}:edit));
+  }
+  function changeEditScope(scope:"all"|"single") {
+    if(scope==="all"&&imageEdits.length){const current={...activeEdit};setImageEdits(previous=>previous.map(()=>current));}
+    setEditScope(scope);
+  }
   const [originalPages,setOriginalPages]=useState(0);
   const [pageSelection,setPageSelection]=useState("all");
   const [type,setType]=useState<"bw"|"color">("bw");
@@ -115,7 +125,7 @@ export default function CustomerUpload({shopCode,shopName,bwPrice,colorPrice}:{s
     if(!files.length)return;
     if(files.length>20){setMessage("Choose up to 20 images per job.");return;}
     if(files.some(f=>!f.type.startsWith("image/")||f.size<1||f.size>12*1024*1024)){setMessage("Use image files (JPG, PNG or WebP), each no larger than 12 MB.");return;}
-    setImageFiles(files);setImageUrls(files.map(f=>URL.createObjectURL(f)));setImageIndex(0);setOriginalPages(files.length);setZoom(1);setCropX(50);setCropY(50);
+    setImageFiles(files);setImageUrls(files.map(f=>URL.createObjectURL(f)));setImageIndex(0);setOriginalPages(files.length);setImageEdits(files.map(()=>({...DEFAULT_IMAGE_EDIT})));setEditScope("all");
   }
 
   function saveName(){
@@ -134,7 +144,7 @@ export default function CustomerUpload({shopCode,shopName,bwPrice,colorPrice}:{s
     setBusy(true);
     try{
       let uploadFile=file;
-      if(mode==="image"){uploadFile=await imagesToA4Pdf(imageFiles,zoom,cropX,cropY);}
+      if(mode==="image"){uploadFile=await imagesToA4Pdf(imageFiles,imageEdits);}
       if(!uploadFile)throw new Error("Choose a file first.");
       if(uploadFile.size>25*1024*1024)throw new Error("The prepared PDF exceeds 25 MB. Try fewer or smaller images.");
       const body=new FormData();body.append("file",uploadFile);body.append("printType",type);body.append("pageSelection",pageSelection.trim().toLowerCase());body.append("copies",String(c));body.append("customerName",customer.trim());body.append("deviceId",deviceId);
@@ -162,13 +172,14 @@ export default function CustomerUpload({shopCode,shopName,bwPrice,colorPrice}:{s
         {mode==="pdf"?<div className="field"><label htmlFor="pdf">PDF document</label><label className="dropzone modern-dropzone" htmlFor="pdf"><Upload size={28}/><strong>{file?file.name:"Tap to choose your PDF"}</strong><span className="muted">{readingPdf?"Counting pages…":originalPages?`${originalPages} pages detected`:"PDF only · maximum 25 MB"}</span><input id="pdf" type="file" accept="application/pdf,.pdf" onChange={e=>void choosePdf(e.target.files?.[0]||null)}/></label></div>
         :<div className="field"><label htmlFor="images">Images for A4 printing</label><label className="dropzone modern-dropzone" htmlFor="images"><FileImage size={28}/><strong>{imageFiles.length?`${imageFiles.length} image${imageFiles.length===1?"":"s"} selected`:"Choose photos or images"}</strong><span className="muted">JPG, PNG or WebP · up to 20 images · 12 MB each</span><input id="images" type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={e=>chooseImages(e.target.files)}/></label>
           {imageFiles.length>0&&<div className="image-editor"><div className="editor-heading"><div><div className="eyebrow">Live preview</div><strong>Page {imageIndex+1} of {imageFiles.length}</strong></div><span className="a4-label">A4 · portrait</span></div>
-            <div className="a4-preview"><div className="a4-paper" onPointerDown={e=>{if(!currentImageUrl)return;e.currentTarget.setPointerCapture(e.pointerId);cropDragStart.current={x:e.clientX,y:e.clientY,cropX,cropY};}} onPointerMove={e=>{const start=cropDragStart.current;if(!start)return;const rect=e.currentTarget.getBoundingClientRect();setCropX(Math.max(0,Math.min(100,start.cropX-((e.clientX-start.x)/Math.max(1,rect.width))*100)));setCropY(Math.max(0,Math.min(100,start.cropY-((e.clientY-start.y)/Math.max(1,rect.height))*100)));}} onPointerUp={()=>{cropDragStart.current=null;}} onPointerCancel={()=>{cropDragStart.current=null;}}>{currentImageUrl&&<img src={currentImageUrl} alt={`A4 preview of ${imageFiles[imageIndex]?.name}`} draggable={false} style={{objectPosition:`${cropX}% ${cropY}%`,transform:`scale(${zoom})`,transformOrigin:`${cropX}% ${cropY}%`}}/>}</div></div>
+            <div className="a4-preview"><div className="a4-paper" onPointerDown={e=>{if(!currentImageUrl)return;e.currentTarget.setPointerCapture(e.pointerId);cropDragStart.current={x:e.clientX,y:e.clientY,imageX:activeEdit.x,imageY:activeEdit.y};}} onPointerMove={e=>{const start=cropDragStart.current;if(!start)return;const rect=e.currentTarget.getBoundingClientRect();updateImageEdit("x",Math.max(0,Math.min(100,start.imageX+((e.clientX-start.x)/Math.max(1,rect.width))*100)));updateImageEdit("y",Math.max(0,Math.min(100,start.imageY+((e.clientY-start.y)/Math.max(1,rect.height))*100)));}} onPointerUp={()=>{cropDragStart.current=null;}} onPointerCancel={()=>{cropDragStart.current=null;}}>{currentImageUrl&&<img src={currentImageUrl} alt={`A4 preview of ${imageFiles[imageIndex]?.name}`} draggable={false} style={{left:`${activeEdit.x}%`,top:`${activeEdit.y}%`,transform:`translate(-50%,-50%) scale(${activeEdit.zoom})`}}/>}</div></div>
             {imageFiles.length>1&&<div className="image-pagination"><button type="button" className="chip" disabled={imageIndex===0} onClick={()=>setImageIndex(i=>Math.max(0,i-1))}>Previous image</button><span>{imageIndex+1} / {imageFiles.length}</span><button type="button" className="chip" disabled={imageIndex===imageFiles.length-1} onClick={()=>setImageIndex(i=>Math.min(imageFiles.length-1,i+1))}>Next image</button></div>}
-            <div className="crop-controls"><div className="crop-title"><Crop size={16}/><strong>Adjust crop</strong><button type="button" className="text-button" onClick={()=>{setZoom(1);setCropX(50);setCropY(50);}}>Reset</button></div>
-              <label>Zoom <strong>{zoom.toFixed(1)}×</strong><input type="range" min="1" max="2.5" step="0.1" value={zoom} onChange={e=>setZoom(Number(e.target.value))}/></label>
-              <label>Horizontal position <strong>{cropX}%</strong><input type="range" min="0" max="100" value={cropX} onChange={e=>setCropX(Number(e.target.value))}/></label>
-              <label>Vertical position <strong>{cropY}%</strong><input type="range" min="0" max="100" value={cropY} onChange={e=>setCropY(Number(e.target.value))}/></label>
-              <p className="muted editor-help">Drag the image inside the A4 preview to reposition it, or use the sliders for precise adjustment. Crop adjustments apply to all selected images and are used in the generated print PDF.</p>
+            <div className="crop-controls"><div className="crop-title"><Crop size={16}/><strong>Image layout</strong><button type="button" className="text-button" onClick={()=>{const reset={...DEFAULT_IMAGE_EDIT};if(editScope==="all")setImageEdits(previous=>previous.map(()=>reset));else setImageEdits(previous=>previous.map((edit,index)=>index===imageIndex?reset:edit));}}>Reset</button></div>
+              <div className="edit-scope-switch" role="group" aria-label="Choose which images to edit"><button type="button" className={editScope==="all"?"chip active":"chip"} onClick={()=>changeEditScope("all")}>Apply to all images</button><button type="button" className={editScope==="single"?"chip active":"chip"} onClick={()=>changeEditScope("single")}>This image only</button></div>
+              <label>Zoom <strong>{Math.round(activeEdit.zoom*100)}%</strong><input type="range" min="0.25" max="2.5" step="0.05" value={activeEdit.zoom} onChange={e=>updateImageEdit("zoom",Number(e.target.value))}/><span className="zoom-buttons"><button type="button" className="chip" aria-label="Zoom out" onClick={()=>updateImageEdit("zoom",Math.max(.25,Math.round((activeEdit.zoom-.1)*100)/100))}>−</button><button type="button" className="chip" aria-label="Zoom in" onClick={()=>updateImageEdit("zoom",Math.min(2.5,Math.round((activeEdit.zoom+.1)*100)/100))}>+</button></span></label>
+              <label>Horizontal position <strong>{Math.round(activeEdit.x)}%</strong><input type="range" min="0" max="100" value={activeEdit.x} onChange={e=>updateImageEdit("x",Number(e.target.value))}/></label>
+              <label>Vertical position <strong>{Math.round(activeEdit.y)}%</strong><input type="range" min="0" max="100" value={activeEdit.y} onChange={e=>updateImageEdit("y",Number(e.target.value))}/></label>
+              <p className="muted editor-help">The white A4 sheet is the printable page. Zoom from 25% to 250%, use − / +, or drag the image to position it. Choose whether edits apply to all photos or only this photo. The PDF uses the same layout as the preview.</p>
             </div>
           </div>}
         </div>}
