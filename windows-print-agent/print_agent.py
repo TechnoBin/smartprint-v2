@@ -133,6 +133,13 @@ class PrintAgent:
                     self.render_jobs()
                     count = len([j for j in self.jobs if j["id"] not in self.dismissed])
                     self.status.set(f"{count} waiting job(s). Nothing prints without your approval.")
+                elif event == "printed":
+                    self.dismissed.add(value)
+                    self.status.set(f"Job {value} was sent to the Windows print queue. Check the printer output.")
+                    self.render_jobs()
+                elif event == "finished":
+                    self.busy = False
+                    self.print_button.configure(state="normal")
                 elif event == "error":
                     self.status.set(value[:220])
         except queue.Empty:
@@ -293,24 +300,6 @@ def main():
         return
 
     app = PrintAgent(root, config)
-    def handle_events():
-        try:
-            while True:
-                event, value = app.events.get_nowait()
-                if event == "printed":
-                    app.dismissed.add(value)
-                    app.status.set(f"Job {value} was sent to the Windows print queue. Check the printer output.")
-                    app.render_jobs()
-                elif event == "finished":
-                    app.busy = False
-                    app.print_button.configure(state="normal")
-                elif event == "error":
-                    app.status.set(value[:220])
-        except queue.Empty:
-            pass
-        if not app.closing:
-            root.after(250, handle_events)
-    root.after(250, handle_events)
     root.mainloop()
 
 
