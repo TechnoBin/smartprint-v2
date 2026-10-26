@@ -271,7 +271,7 @@ class PrintAgent:
         self.print_scheduled = False
         if self.closing or self.busy or self.auto_print_paused:
             return
-        if not any(job["id"] == job_id for job in self.jobs):
+        if job_id in self.dismissed or not any(job["id"] == job_id for job in self.jobs):
             return
         self.start_print(job_id)
 
