@@ -12,7 +12,7 @@ The Windows station polls the SmartPrint V2 queue and processes one job at a tim
 
 ## 1. Deploy the correct branch
 
-Deploy the `auto-printing-polish` branch as a **Vercel Preview deployment**. Use that preview URL for the Windows agent during testing. Do not point the station at production until you have tested the full flow and intentionally chosen to switch it.
+Deploy the `dual-print-modes` branch as a **Vercel Preview deployment**. Use that preview URL for the Windows agent during testing. Do not point the station at production until you have tested the full flow and intentionally chosen to switch it.
 
 Set the existing Vercel environment variables for this project/preview environment. Keep `SUPABASE_SERVICE_ROLE_KEY` server-side only.
 
