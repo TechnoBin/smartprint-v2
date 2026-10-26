@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Check, Copy, Printer, ShieldCheck, Zap, CircleAlert, MonitorCheck } from "lucide-react";
+import { Check, Copy, ShieldCheck, Zap, CircleAlert, MonitorCheck } from "lucide-react";
 
 type Pairing = { token: string; device: { id: string; name: string; created_at: string } };
 
