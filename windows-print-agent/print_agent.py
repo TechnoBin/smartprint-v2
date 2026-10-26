@@ -41,6 +41,7 @@ class PrintAgent:
         self.dismissed = set()
         self.busy = False
         self.prompt_scheduled = False
+        self.prompt_active = False
         self.closing = False
 
         root.title("SmartPrint V2 — Print Confirmation")
@@ -166,7 +167,7 @@ class PrintAgent:
             self.tree.selection_set(selected_id)
 
     def schedule_prompt(self):
-        if self.busy or self.prompt_scheduled:
+        if self.busy or self.prompt_scheduled or self.prompt_active:
             return
         candidate = next((job for job in self.jobs if job["id"] not in self.dismissed and self.tree.exists(job["id"])), None)
         if not candidate:
@@ -186,36 +187,63 @@ class PrintAgent:
         self.status.set("Job hidden for this session; it remains pending in the admin queue.")
 
     def confirm_print(self):
+        if self.prompt_active:
+            return
+
         self.prompt_scheduled = False
         selection = self.tree.selection()
         if not selection:
             messagebox.showinfo("Choose a job", "Select a job first.", parent=self.root)
             return
+
         job_id = selection[0]
         job = next((item for item in self.jobs if item["id"] == job_id), None)
-        if not job:
+        if not job or job_id in self.dismissed:
             self.refresh()
             return
+
         details = (
-            f"Job ID: {job['id']}\n"
-            f"File: {job.get('file_name', '')}\n"
-            f"Pages: {job.get('pages', '')}\n"
-            f"Type: {'Black & white' if job.get('print_type') == 'bw' else 'Colour'}\n"
-            f"Copies: {job.get('copies', 1)}\n"
-            f"Listed price: ₹{float(job.get('price') or 0):.2f}\n\n"
+            f"Job ID: {job['id']}\\n"
+            f"File: {job.get('file_name', '')}\\n"
+            f"Pages: {job.get('pages', '')}\\n"
+            f"Type: {'Black & white' if job.get('print_type') == 'bw' else 'Colour'}\\n"
+            f"Copies: {job.get('copies', 1)}\\n"
+            f"Listed price: ₹{float(job.get('price') or 0):.2f}\\n\\n"
             "Send this job to the Windows printer queue now?"
         )
-        if not messagebox.askyesno("Confirm printing", details, icon="question", parent=self.root):
+
+        self.prompt_active = True
+        try:
+            approved = messagebox.askyesno(
+                "Confirm printing",
+                details,
+                icon="question",
+                parent=self.root,
+            )
+        finally:
+            self.prompt_active = False
+
+        if not approved:
             self.dismissed.add(job_id)
             self.render_jobs()
             return
+
         if self.busy:
-            messagebox.showinfo("Please wait", "Another print job is being processed.", parent=self.root)
+            messagebox.showinfo(
+                "Please wait",
+                "Another print job is being processed.",
+                parent=self.root,
+            )
             return
+
         self.busy = True
         self.print_button.configure(state="disabled")
         self.status.set(f"Claiming job {job_id}…")
-        threading.Thread(target=self.print_worker, args=(job_id,), daemon=True).start()
+        threading.Thread(
+            target=self.print_worker,
+            args=(job_id,),
+            daemon=True,
+        ).start()
 
     def print_worker(self, job_id):
         claimed = False
