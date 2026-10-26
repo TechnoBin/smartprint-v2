@@ -69,13 +69,55 @@ export default function JobsPage() {
   const revenue = jobs.filter(j=>j.status==="printed").reduce((sum,j)=>sum+Number(j.price),0);
 
   return <div className="admin-jobs-page">
+    <style jsx global>{`
+      .mobile-job-list { display:none; }
+      .mobile-job-card { background:#fff; border:1px solid var(--admin-line,#eaecf0); border-radius:15px; padding:15px; display:grid; gap:13px; box-shadow:0 3px 12px rgba(16,24,40,.035); }
+      .mobile-job-top { display:flex; align-items:flex-start; justify-content:space-between; gap:10px; }
+      .mobile-job-identity { display:flex; align-items:flex-start; gap:10px; min-width:0; }
+      .mobile-job-identity input { width:18px; height:18px; margin-top:2px; flex:0 0 auto; accent-color:#3157d5; }
+      .mobile-job-name { min-width:0; display:grid; gap:5px; }
+      .mobile-job-name strong { font-size:14px; overflow-wrap:anywhere; }
+      .mobile-job-name a { font-size:12px; color:#3157d5; text-decoration:underline; text-underline-offset:3px; overflow-wrap:anywhere; }
+      .mobile-job-name small { font-size:10px; color:#98a2b3; overflow-wrap:anywhere; }
+      .mobile-job-status { display:grid; gap:5px; min-width:112px; }
+      .mobile-job-status label { font-size:10px; color:#667085; font-weight:800; }
+      .mobile-job-status select { width:100%; min-height:40px; border:1px solid #c7d2fe; border-radius:10px; background:#eff4ff; color:#2448bc; padding:0 8px; font-size:12px; font-weight:800; }
+      .mobile-job-status select:disabled { opacity:.6; }
+      .mobile-job-details { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:9px; }
+      .mobile-job-detail { min-width:0; padding:10px; background:#f9fafb; border-radius:10px; display:grid; gap:4px; }
+      .mobile-job-detail span { font-size:10px; color:#667085; }
+      .mobile-job-detail strong { font-size:13px; overflow-wrap:anywhere; }
+      .mobile-job-date { font-size:10px; color:#98a2b3; }
+      @media(max-width:760px) {
+        .admin-jobs-page .admin-table-wrap { display:none; }
+        .admin-jobs-page .mobile-job-list { display:grid; gap:11px; padding:12px; }
+        .admin-jobs-page .jobs-workspace { overflow:visible; }
+        .admin-jobs-page .bulk-toolbar { position:sticky; top:0; z-index:4; background:#fbfcfe; }
+        .admin-jobs-page .mobile-job-status { min-width:108px; }
+      }
+      @media(max-width:380px) {
+        .mobile-job-card { padding:12px; }
+        .mobile-job-top { flex-direction:column; }
+        .mobile-job-status { width:100%; }
+      }
+    `}</style>
     <div className="admin-page-heading"><div><div className="eyebrow">Operations · Live queue</div><h1>Print jobs</h1><p className="muted">Manage incoming orders, update status, and safely remove old jobs.</p></div><button className="btn btn-secondary" type="button" onClick={()=>void load()}><RefreshCw size={16}/> Refresh</button></div>
     <div className="admin-metrics"><div className="metric-card"><span>Pending</span><strong>{pending}</strong><small>Awaiting print</small></div><div className="metric-card"><span>Printing</span><strong>{printing}</strong><small>In progress</small></div><div className="metric-card"><span>Printed</span><strong>{printed}</strong><small>Completed jobs</small></div><div className="metric-card"><span>Printed value</span><strong>{formatINR(revenue)}</strong><small>Marked as printed</small></div></div>
     <section className="card jobs-workspace">
       <div className="jobs-toolbar"><label className="search-box"><Search size={17}/><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search job ID, file, customer, status…" /></label><select aria-label="Filter by status" value={filter} onChange={e=>setFilter(e.target.value)}><option value="all">All statuses</option>{statuses.map(s=><option key={s} value={s}>{statusLabel[s]}</option>)}</select></div>
       <div className="bulk-toolbar"><label className="select-all-label"><input type="checkbox" checked={allVisibleSelected} onChange={toggleVisible} disabled={!visibleJobs.length}/><span>{selected.length ? `${selected.length} selected` : "Select jobs"}</span></label><div className="bulk-actions">{selected.length>0&&<button type="button" className="btn btn-danger" onClick={()=>setConfirmDelete(true)}><Trash2 size={16}/> Delete selected ({selected.length})</button>}</div></div>
       {message&&<p className={message.toLowerCase().includes("failed")||message.toLowerCase().includes("could not")?"notice error":"notice"} role="status">{message}</p>}
-      {visibleJobs.length===0?<div className="empty-state"><FileText size={30}/><strong>No matching jobs</strong><p className="muted">Try another search or status filter.</p></div>:<div className="table-wrap admin-table-wrap"><table className="admin-jobs-table"><thead><tr><th><span className="sr-only">Select</span></th><th>Job ID</th><th>Customer / file</th><th>Pages</th><th>Print setup</th><th>Total</th><th>Submitted</th><th>Status</th><th>Update</th></tr></thead><tbody>{visibleJobs.map(j=><tr key={j.id}><td><input aria-label={`Select ${j.file_name}`} type="checkbox" checked={selected.includes(j.id)} onChange={()=>toggle(j.id)}/></td><td><code style={{fontSize:11,wordBreak:"break-all"}} title={j.id}>{j.id}</code></td><td><div className="job-file-cell"><strong>{j.customer_name||"Guest customer"}</strong><a href={`/api/admin/print-jobs/${j.id}/file`} target="_blank" rel="noreferrer" style={{color:"var(--accent, #8b6b35)",textDecoration:"underline",textUnderlineOffset:3}} title="Open or download this uploaded PDF">{j.file_name}</a><small>Tap filename to open PDF · Selection: {j.selected_pages||"all"}</small></div></td><td><strong>{j.pages}</strong><small className="cell-subtext">of {j.original_pages||j.pages} original</small></td><td><strong>{j.print_type==="bw"?"B&W":"Colour"}</strong><small className="cell-subtext">{j.copies} {j.copies===1?"copy":"copies"}</small></td><td><strong>{formatINR(Number(j.price))}</strong></td><td><time>{new Date(j.created_at).toLocaleString()}</time></td><td><span className={`job-status status-${j.status}`}>{statusLabel[j.status]||j.status}</span></td><td><select aria-label={`Update status for ${j.file_name}`} value={j.status} disabled={busyId===j.id} onChange={e=>void update(j.id,e.target.value)}>{statuses.map(s=><option key={s} value={s}>{statusLabel[s]}</option>)}</select></td></tr>)}</tbody></table></div>}
+      {visibleJobs.length===0?<div className="empty-state"><FileText size={30}/><strong>No matching jobs</strong><p className="muted">Try another search or status filter.</p></div>:<>
+        <div className="mobile-job-list">{visibleJobs.map(j=><article className="mobile-job-card" key={j.id}>
+          <div className="mobile-job-top">
+            <div className="mobile-job-identity"><input aria-label={`Select ${j.file_name}`} type="checkbox" checked={selected.includes(j.id)} onChange={()=>toggle(j.id)}/><div className="mobile-job-name"><strong>{j.customer_name||"Guest customer"}</strong><a href={`/api/admin/print-jobs/${j.id}/file`} target="_blank" rel="noreferrer" title="Open or download uploaded PDF">{j.file_name}</a><small>ID: {j.id.slice(0,8)}… · {j.selected_pages||"All pages"}</small></div></div>
+            <div className="mobile-job-status"><label htmlFor={`mobile-status-${j.id}`}>CHANGE STATUS</label><select id={`mobile-status-${j.id}`} aria-label={`Update status for ${j.file_name}`} value={j.status} disabled={busyId===j.id} onChange={e=>void update(j.id,e.target.value)}>{statuses.map(s=><option key={s} value={s}>{busyId===j.id?"Saving…":statusLabel[s]}</option>)}</select></div>
+          </div>
+          <div className="mobile-job-details"><div className="mobile-job-detail"><span>Pages</span><strong>{j.pages} <small style={{fontWeight:400,color:"#667085"}}>/ {j.original_pages||j.pages} original</small></strong></div><div className="mobile-job-detail"><span>Print setup</span><strong>{j.print_type==="bw"?"B&W":"Colour"} · {j.copies} {j.copies===1?"copy":"copies"}</strong></div><div className="mobile-job-detail"><span>Total</span><strong>{formatINR(Number(j.price))}</strong></div><div className="mobile-job-detail"><span>Current status</span><strong><span className={`job-status status-${j.status}`}>{statusLabel[j.status]||j.status}</span></strong></div></div>
+          <div className="mobile-job-date">Submitted {new Date(j.created_at).toLocaleString()}</div>
+        </article>)}</div>
+        <div className="table-wrap admin-table-wrap"><table className="admin-jobs-table"><thead><tr><th><span className="sr-only">Select</span></th><th>Job ID</th><th>Customer / file</th><th>Pages</th><th>Print setup</th><th>Total</th><th>Submitted</th><th>Status</th><th>Update</th></tr></thead><tbody>{visibleJobs.map(j=><tr key={j.id}><td><input aria-label={`Select ${j.file_name}`} type="checkbox" checked={selected.includes(j.id)} onChange={()=>toggle(j.id)}/></td><td><code style={{fontSize:11,wordBreak:"break-all"}} title={j.id}>{j.id}</code></td><td><div className="job-file-cell"><strong>{j.customer_name||"Guest customer"}</strong><a href={`/api/admin/print-jobs/${j.id}/file`} target="_blank" rel="noreferrer" style={{color:"var(--accent, #8b6b35)",textDecoration:"underline",textUnderlineOffset:3}} title="Open or download this uploaded PDF">{j.file_name}</a><small>Tap filename to open PDF · Selection: {j.selected_pages||"all"}</small></div></td><td><strong>{j.pages}</strong><small className="cell-subtext">of {j.original_pages||j.pages} original</small></td><td><strong>{j.print_type==="bw"?"B&W":"Colour"}</strong><small className="cell-subtext">{j.copies} {j.copies===1?"copy":"copies"}</small></td><td><strong>{formatINR(Number(j.price))}</strong></td><td><time>{new Date(j.created_at).toLocaleString()}</time></td><td><span className={`job-status status-${j.status}`}>{statusLabel[j.status]||j.status}</span></td><td><select aria-label={`Update status for ${j.file_name}`} value={j.status} disabled={busyId===j.id} onChange={e=>void update(j.id,e.target.value)}>{statuses.map(s=><option key={s} value={s}>{statusLabel[s]}</option>)}</select></td></tr>)}</tbody></table></div>
+      </>}
     </section>
     {confirmDelete&&<div className="modal-backdrop" role="presentation" onMouseDown={e=>{if(e.target===e.currentTarget&&!deleting)setConfirmDelete(false);}}><section className="confirm-modal" role="dialog" aria-modal="true" aria-labelledby="delete-title"><div className="modal-icon danger-icon"><Trash2 size={22}/></div><h2 id="delete-title">Delete {selected.length} selected {selected.length===1?"job":"jobs"}?</h2><p className="muted">This permanently removes the selected database records and their stored print files. This action cannot be undone.</p><div className="modal-actions"><button className="btn btn-secondary" type="button" disabled={deleting} onClick={()=>setConfirmDelete(false)}>Cancel</button><button className="btn btn-danger" type="button" disabled={deleting} onClick={()=>void deleteSelected()}>{deleting?"Deleting…":"Delete permanently"}</button></div></section></div>}
   </div>;
