@@ -28,7 +28,7 @@ def load_config():
         if not str(config.get(key, "")).strip():
             raise RuntimeError(f"Please fill in '{key}' in print-agent-config.json.")
     config["base_url"] = config["base_url"].rstrip("/")
-    # Automatic printing is the default for this branch. Set false for supervised mode.
+    # This is the fallback mode when no launch-time --mode is provided.
     config["auto_print"] = config.get("auto_print", True) is True
     return config
 
