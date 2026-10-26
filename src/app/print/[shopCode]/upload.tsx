@@ -218,19 +218,22 @@ export default function CustomerUpload({shopCode,shopName,bwPrice,colorPrice}:{s
         <div className="field"><label htmlFor="copies">Copies</label><input id="copies" type="number" min="1" max="100" value={copies} onChange={e=>setCopies(e.target.value)} required/></div>
         <button className="btn btn-full submit-print-btn" disabled={busy||readingPdf||!originalPages}>{busy?"Preparing print-ready PDF…":"Submit print job"}</button>
         {message&&<p className={message.toLowerCase().includes("could not")||message.toLowerCase().includes("failed")?"notice error":"notice"} role="status">{message}</p>}
-        {job&&<div className="job-status-panel" role="status" aria-live="polite" style={{marginTop:16,padding:16,borderRadius:14,border:"1px solid var(--border, #d8e2dc)",background:job.status==="printed"?"#edf8f0":job.status==="failed"?"#fff1f0":job.status==="printing"?"#eef5ff":"#f6f7f8",color:"#18211c"}}>
-          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,flexWrap:"wrap",marginBottom:10}}>
-            <div style={{display:"flex",alignItems:"center",gap:8,fontWeight:700}}>
-              <CheckCircle2 size={19} aria-hidden="true"/>
+        {job&&<div className="job-status-panel" role="status" aria-live="polite" style={{marginTop:14,padding:"12px 14px",borderRadius:12,border:"1px solid var(--border, #d8e2dc)",background:job.status==="printed"?"#edf8f0":job.status==="failed"?"#fff1f0":job.status==="printing"?"#eef5ff":"#f6f7f8",color:"#18211c"}}>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8,flexWrap:"wrap",marginBottom:8}}>
+            <div style={{display:"flex",alignItems:"center",gap:7,fontWeight:700,fontSize:14,minWidth:0}}>
+              <CheckCircle2 size={17} aria-hidden="true"/>
               <span>Print job submitted</span>
             </div>
-            <span className={`job-status status-${job.status}`} style={{fontSize:13,fontWeight:700,whiteSpace:"nowrap"}}>{statusName[job.status]||job.status}</span>
+            <span className={`job-status status-${job.status}`} style={{fontSize:12,fontWeight:700,whiteSpace:"nowrap"}}>{statusName[job.status]||job.status}</span>
           </div>
-          <div style={{display:"grid",gridTemplateColumns:"minmax(0,1fr) auto",gap:"8px 14px",alignItems:"start",fontSize:14}}>
-            <span style={{opacity:.75}}>Job ID</span><strong style={{textAlign:"right",overflowWrap:"anywhere"}}>{job.id}</strong>
-            <span style={{opacity:.75}}>Total</span><strong>{formatINR(Number(job.price))}</strong>
+          <div style={{display:"flex",alignItems:"baseline",justifyContent:"space-between",gap:12,fontSize:13}}>
+            <span style={{opacity:.7,flexShrink:0}}>Job ID</span>
+            <strong style={{textAlign:"right",overflowWrap:"anywhere",wordBreak:"break-word",fontSize:12,lineHeight:1.4}}>{job.id}</strong>
           </div>
-          <p style={{fontSize:13,lineHeight:1.5,margin:"12px 0 0",opacity:.8}}>{job.status==="printed"?"Your document has been printed.":job.status==="printing"?"Your document is currently being printed.":job.status==="failed"?"Printing could not be completed. Please ask the shop staff for help.":"Your document is in the shop queue. This status updates automatically."}</p>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,marginTop:6,fontSize:13}}>
+            <span style={{opacity:.7}}>Total</span><strong>{formatINR(Number(job.price))}</strong>
+          </div>
+          <p style={{fontSize:12,lineHeight:1.45,margin:"8px 0 0",opacity:.78}}>{job.status==="printed"?"Your document has been printed.":job.status==="printing"?"Your document is being printed now.":job.status==="failed"?"Printing failed. Please ask the shop staff for help.":"Your document is in the shop queue. Status updates automatically."}</p>
         </div>}
       </form>
     </section>
