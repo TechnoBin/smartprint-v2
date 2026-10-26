@@ -1,51 +1,45 @@
+# SmartPrint V2 — Setup
 
-# SmartPrint V2 Setup
-
-## Before starting
-- Repository: TechnoBin/smartprint-v2
-- Branch: main
+## Important
+- This guide is for the separate SmartPrint V2 Supabase project.
 - Keep SmartPrint V1 and its database untouched.
-- This version requires a separate Supabase project.
+- For the automatic-printing feature, deploy the `auto-printing-polish` branch as a Vercel **Preview** first.
 
 ## 1. Supabase
-1. Create a new Supabase project.
-2. Open SQL Editor and create a new query.
-3. Copy all of supabase/schema.sql into the query and run it.
-4. Open Authentication and create your owner user.
-5. Copy the owner's UUID.
-6. In SQL Editor, create your shop:
+1. Create or select the dedicated SmartPrint V2 project.
+2. Open SQL Editor and run `supabase/schema.sql` if the base schema has not been installed.
+3. Create the owner user in Supabase Authentication and copy the user's UUID.
+4. Create a shop if one does not exist:
 
+```sql
 insert into public.shops (owner_id, name, shop_code, bw_price, color_price)
 values ('OWNER-UUID-HERE', 'My Print Shop', 'my-print-shop', 2, 5);
+```
 
-Replace OWNER-UUID-HERE with the actual user UUID.
-Choose a unique lowercase shop code.
+Replace the placeholder with the actual owner UUID and choose a unique lowercase shop code.
 
-## 2. Environment variables
-In Supabase Project Settings, find the project URL and API keys.
+## 2. Print station database setup
+Run `supabase/print-agent-migration.sql` once in the V2 project's SQL Editor. It creates the private station-token table. Do not run it in SmartPrint V1.
 
-Configure these variables in Vercel:
-- NEXT_PUBLIC_SUPABASE_URL
-- NEXT_PUBLIC_SUPABASE_ANON_KEY
-- SUPABASE_SERVICE_ROLE_KEY
-- NEXT_PUBLIC_SITE_URL
+## 3. Vercel environment variables
+Configure these in the V2 Vercel project:
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `NEXT_PUBLIC_SITE_URL`
 
-Set NEXT_PUBLIC_SITE_URL to the deployed V2 URL.
+Set `NEXT_PUBLIC_SITE_URL` to the deployment URL being tested. Keep the service-role key server-side and never commit real environment values.
 
-Never put real keys in GitHub. The service-role key must remain server-side.
+## 4. Automatic Windows printing
+Follow [windows-print-agent/README.md](./windows-print-agent/README.md):
+1. Deploy `auto-printing-polish` to Preview and wait for a successful build.
+2. Apply the print-agent migration above.
+3. Sign in to the preview owner dashboard and generate a station token.
+4. Configure a local, untracked `windows-print-agent/print-agent-config.json` with the preview URL, token, exact printer name, SumatraPDF path, and `"auto_print": true`.
+5. Test with a one-page, non-sensitive PDF and verify the physical output before any customer use.
 
-## 3. Vercel
-1. Import TechnoBin/smartprint-v2.
-2. Select branch main.
-3. Add all four environment variables.
-4. Deploy and inspect the build logs.
-5. Test /login and the owner dashboard.
-6. Test /print/my-print-shop using a non-sensitive sample PDF.
-
-## 4. Important limitations
-- Physical printing is manual; automatic printer control is not implemented.
-- Shop creation is currently performed using SQL.
-- Test authentication, uploads, pricing, job status updates and privacy before real use.
-- Public uploads still need rate limiting and abuse protection.
-- The QR image currently uses a third-party QR generator.
-- Never use real customer documents until the security and privacy checks are complete.
+## 5. Important safety notes
+- Automatic mode prints without asking for approval. Keep the printer supervised and consider that public uploads can consume paper and ink.
+- A successful print command only means Windows accepted the job; verify physical output before retrying.
+- Public upload rate limiting and abuse protection should be reviewed before using this for real customer traffic.
+- Never expose service-role keys or pairing tokens in browser code, GitHub, or screenshots.
