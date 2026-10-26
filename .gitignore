@@ -11,3 +11,5 @@ yarn-debug.log*
 pnpm-debug.log*
 .DS_Store
 
+# Local Windows print-station token/config — never commit
+windows-print-agent/print-agent-config.json
