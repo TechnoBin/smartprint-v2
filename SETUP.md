@@ -3,7 +3,7 @@
 ## Important
 - This guide is for the separate SmartPrint V2 Supabase project.
 - Keep SmartPrint V1 and its database untouched.
-- For the automatic-printing feature, deploy the `auto-printing-polish` branch as a Vercel **Preview** first.
+- For the automatic-printing feature, deploy the `dual-print-modes` branch as a Vercel **Preview** first.
 
 ## 1. Supabase
 1. Create or select the dedicated SmartPrint V2 project.
