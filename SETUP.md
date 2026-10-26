@@ -32,7 +32,7 @@ Set `NEXT_PUBLIC_SITE_URL` to the deployment URL being tested. Keep the service-
 
 ## 4. Automatic Windows printing
 Follow [windows-print-agent/README.md](./windows-print-agent/README.md):
-1. Deploy `auto-printing-polish` to Preview and wait for a successful build.
+1. Deploy `dual-print-modes` to Preview and wait for a successful build.
 2. Apply the print-agent migration above.
 3. Sign in to the preview owner dashboard and generate a station token.
 4. Configure a local, untracked `windows-print-agent/print-agent-config.json` with the preview URL, token, exact printer name, SumatraPDF path, and `"auto_print": true`.
