@@ -1,3 +1,4 @@
+import argparse
 import json
 import os
 import queue
@@ -49,7 +50,7 @@ class PrintAgent:
         self.prompt_active = False
         self.closing = False
 
-        root.title("SmartPrint V2 — Automatic Print Station")
+        root.title("SmartPrint V2 — Print Station")
         root.geometry("940x600")
         root.minsize(720, 470)
         root.configure(background="#f4f6f8")
@@ -459,9 +460,18 @@ class PrintAgent:
 
 
 def main():
+    parser = argparse.ArgumentParser(description="SmartPrint V2 Windows print station")
+    parser.add_argument(
+        "--mode", choices=("confirmation", "automatic"), default=None,
+        help="Override the config mode for this launch only.",
+    )
+    args = parser.parse_args()
+
     root = tk.Tk()
     try:
         config = load_config()
+        if args.mode is not None:
+            config["auto_print"] = args.mode == "automatic"
     except Exception as exc:
         root.withdraw()
         messagebox.showerror("SmartPrint setup required", str(exc))
