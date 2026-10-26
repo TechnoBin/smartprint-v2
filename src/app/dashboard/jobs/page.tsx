@@ -70,6 +70,41 @@ export default function JobsPage() {
 
   return <div className="admin-jobs-page">
     <style jsx global>{`
+      .admin-jobs-page { color:#101828; }
+      .admin-jobs-page .admin-page-heading { align-items:center; margin-bottom:28px; }
+      .admin-jobs-page .admin-page-heading h1 { font-size:clamp(30px,3vw,40px); letter-spacing:-1.3px; }
+      .admin-jobs-page .admin-page-heading .muted { margin:0; font-size:13px; }
+      .admin-jobs-page .admin-page-heading>.btn { min-height:44px; box-shadow:0 2px 5px rgba(16,24,40,.06); }
+      .admin-jobs-page .admin-metrics { gap:16px; margin:26px 0; }
+      .admin-jobs-page .metric-card { position:relative; overflow:hidden; padding:22px; border-radius:18px; transition:transform .18s ease,box-shadow .18s ease; }
+      .admin-jobs-page .metric-card:hover { transform:translateY(-2px); box-shadow:0 12px 28px rgba(16,24,40,.07); }
+      .admin-jobs-page .metric-card:after { content:""; position:absolute; width:4px; inset:0 auto 0 0; background:#3157d5; opacity:.8; }
+      .admin-jobs-page .metric-card:nth-child(2):after { background:#7f56d9; }
+      .admin-jobs-page .metric-card:nth-child(3):after { background:#12b76a; }
+      .admin-jobs-page .metric-card:nth-child(4):after { background:#f79009; }
+      .admin-jobs-page .metric-card strong { margin:12px 0 6px; font-variant-numeric:tabular-nums; }
+      .admin-jobs-page .jobs-workspace { border-radius:18px; box-shadow:0 5px 22px rgba(16,24,40,.045); }
+      .admin-jobs-page .jobs-toolbar { padding:20px 22px; background:linear-gradient(180deg,#fff,#fcfcfd); }
+      .admin-jobs-page .search-box { min-height:46px; transition:border-color .15s,box-shadow .15s; }
+      .admin-jobs-page .search-box:focus-within { border-color:#84adff; box-shadow:0 0 0 3px rgba(49,87,213,.10); }
+      .admin-jobs-page .jobs-toolbar>select { min-width:155px; min-height:44px; }
+      .admin-jobs-page .bulk-toolbar { padding:14px 22px; }
+      .admin-jobs-page .admin-table-wrap { max-height:min(68vh,760px); overflow:auto; }
+      .admin-jobs-page .admin-jobs-table { min-width:1020px; }
+      .admin-jobs-page .admin-jobs-table thead th { position:sticky; top:0; z-index:2; background:#f8f9fc; box-shadow:0 1px 0 #eaecf0; }
+      .admin-jobs-page .admin-jobs-table th { padding:14px 13px; font-size:10px; letter-spacing:.8px; }
+      .admin-jobs-page .admin-jobs-table td { padding:15px 13px; }
+      .admin-jobs-page .admin-jobs-table tbody tr { transition:background .12s; }
+      .admin-jobs-page .admin-jobs-table tbody tr:hover { background:#f8faff; }
+      .admin-jobs-page .admin-jobs-table td:nth-child(2) code { display:inline-block; max-width:115px; color:#667085; font-size:10px!important; }
+      .admin-jobs-page .admin-jobs-table select { min-width:112px; min-height:40px; border-color:#c7d2fe; background:#eff4ff; color:#2448bc; font-weight:800; font-size:12px; cursor:pointer; }
+      .admin-jobs-page .admin-jobs-table select:focus-visible,.admin-jobs-page button:focus-visible { outline:3px solid rgba(49,87,213,.24); outline-offset:2px; }
+      .admin-jobs-page .admin-jobs-table .job-status { padding:7px 10px; }
+      .admin-jobs-page .job-file-cell { gap:6px; }
+      .admin-jobs-page .job-file-cell strong { font-size:12px; color:#344054; }
+      .admin-jobs-page .job-file-cell a { max-width:210px; overflow-wrap:anywhere; font-size:12px; line-height:1.4; }
+      .admin-jobs-page .job-file-cell small { line-height:1.4; }
+      .admin-jobs-page .notice { margin:14px 18px; }
       .mobile-job-list { display:none; }
       .mobile-job-card { background:#fff; border:1px solid var(--admin-line,#eaecf0); border-radius:15px; padding:15px; display:grid; gap:13px; box-shadow:0 3px 12px rgba(16,24,40,.035); }
       .mobile-job-top { display:flex; align-items:flex-start; justify-content:space-between; gap:10px; }
@@ -88,6 +123,11 @@ export default function JobsPage() {
       .mobile-job-detail span { font-size:10px; color:#667085; }
       .mobile-job-detail strong { font-size:13px; overflow-wrap:anywhere; }
       .mobile-job-date { font-size:10px; color:#98a2b3; }
+      @media(min-width:761px) and (max-width:1100px) {
+        .admin-jobs-page .admin-metrics { gap:11px; }
+        .admin-jobs-page .metric-card { padding:17px; }
+        .admin-jobs-page .admin-table-wrap { max-height:65vh; }
+      }
       @media(max-width:760px) {
         .admin-jobs-page .admin-table-wrap { display:none; }
         .admin-jobs-page .mobile-job-list { display:grid; gap:11px; padding:12px; }
