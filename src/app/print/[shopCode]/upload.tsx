@@ -65,6 +65,8 @@ export default function CustomerUpload({shopCode,shopName,bwPrice,colorPrice}:{s
   const [imageEdits,setImageEdits]=useState<ImageEdit[]>([]);
   const [editScope,setEditScope]=useState<"all"|"single">("all");
   const cropDragStart=useRef<{x:number;y:number;imageX:number;imageY:number}|null>(null);
+  const pdfInputRef=useRef<HTMLInputElement>(null);
+  const imageInputRef=useRef<HTMLInputElement>(null);
   const activeEdit=imageEdits[imageIndex]||DEFAULT_IMAGE_EDIT;
   function updateImageEdit<K extends keyof ImageEdit>(key:K,value:ImageEdit[K]) {
     setImageEdits(previous=>previous.map((edit,index)=>editScope==="all"||index===imageIndex?{...edit,[key]:value}:edit));
@@ -162,7 +164,23 @@ export default function CustomerUpload({shopCode,shopName,bwPrice,colorPrice}:{s
       const body=new FormData();body.append("file",uploadFile);body.append("printType",type);body.append("pageSelection",pageSelection.trim().toLowerCase());body.append("copies",String(c));body.append("customerName",customer.trim());body.append("deviceId",deviceId);
       const response=await fetch(`/api/print-jobs/${shopCode}`,{method:"POST",body});const result=await response.json();
       if(!response.ok)throw new Error(result.error||"Could not submit print job.");
-      setJob(result.job);setMessage("Your print-ready file has been sent to the shop queue.");await loadHistory();
+      setJob(result.job);
+      setMessage("Your print-ready file has been sent to the shop queue.");
+
+      // Clear the upload form after a successful submission, while keeping the job status visible.
+      setFile(null);
+      setImageFiles([]);
+      setImageUrls([]);
+      setImageEdits([]);
+      setImageIndex(0);
+      setOriginalPages(0);
+      setPageSelection("all");
+      setCopies("1");
+      setType("bw");
+      if(pdfInputRef.current)pdfInputRef.current.value="";
+      if(imageInputRef.current)imageInputRef.current.value="";
+
+      await loadHistory();
     }catch(error){setMessage(error instanceof Error?error.message:"Upload failed. Try again.");}
     finally{setBusy(false);}
   }
@@ -181,8 +199,8 @@ export default function CustomerUpload({shopCode,shopName,bwPrice,colorPrice}:{s
 
     <div className="grid2 customer-upload-grid"><section className="card"><div className="card-heading"><div><div className="eyebrow">New print order</div><h2>{mode==="pdf"?"Document details":"Photo print setup"}</h2></div></div>
       <form onSubmit={submit}>
-        {mode==="pdf"?<div className="field"><label htmlFor="pdf">PDF document</label><label className="dropzone modern-dropzone" htmlFor="pdf"><Upload size={28}/><strong>{file?file.name:"Tap to choose your PDF"}</strong><span className="muted">{readingPdf?"Counting pages…":originalPages?`${originalPages} pages detected`:"PDF only · maximum 25 MB"}</span><input id="pdf" type="file" accept="application/pdf,.pdf" onChange={e=>void choosePdf(e.target.files?.[0]||null)}/></label></div>
-        :<div className="field"><label htmlFor="images">Images for A4 printing</label><label className="dropzone modern-dropzone" htmlFor="images"><FileImage size={28}/><strong>{imageFiles.length?`${imageFiles.length} image${imageFiles.length===1?"":"s"} selected`:"Choose photos or images"}</strong><span className="muted">JPG, PNG or WebP · up to 20 images · 12 MB each</span><input id="images" type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={e=>chooseImages(e.target.files)}/></label>
+        {mode==="pdf"?<div className="field"><label htmlFor="pdf">PDF document</label><label className="dropzone modern-dropzone" htmlFor="pdf"><Upload size={28}/><strong>{file?file.name:"Tap to choose your PDF"}</strong><span className="muted">{readingPdf?"Counting pages…":originalPages?`${originalPages} pages detected`:"PDF only · maximum 25 MB"}</span><input ref={pdfInputRef} id="pdf" type="file" accept="application/pdf,.pdf" onChange={e=>void choosePdf(e.target.files?.[0]||null)}/></label></div>
+        :<div className="field"><label htmlFor="images">Images for A4 printing</label><label className="dropzone modern-dropzone" htmlFor="images"><FileImage size={28}/><strong>{imageFiles.length?`${imageFiles.length} image${imageFiles.length===1?"":"s"} selected`:"Choose photos or images"}</strong><span className="muted">JPG, PNG or WebP · up to 20 images · 12 MB each</span><input ref={imageInputRef} id="images" type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={e=>chooseImages(e.target.files)}/></label>
           {imageFiles.length>0&&<div className="image-editor"><div className="editor-heading"><div><div className="eyebrow">Live preview</div><strong>Page {imageIndex+1} of {imageFiles.length}</strong></div><span className="a4-label">A4 · portrait</span></div>
             <div className="a4-preview"><div className="a4-paper" onPointerDown={e=>{if(!currentImageUrl)return;e.currentTarget.setPointerCapture(e.pointerId);cropDragStart.current={x:e.clientX,y:e.clientY,imageX:activeEdit.x,imageY:activeEdit.y};}} onPointerMove={e=>{const start=cropDragStart.current;if(!start)return;const rect=e.currentTarget.getBoundingClientRect();updateImageEdit("x",Math.max(0,Math.min(100,start.imageX+((e.clientX-start.x)/Math.max(1,rect.width))*100)));updateImageEdit("y",Math.max(0,Math.min(100,start.imageY+((e.clientY-start.y)/Math.max(1,rect.height))*100)));}} onPointerUp={()=>{cropDragStart.current=null;}} onPointerCancel={()=>{cropDragStart.current=null;}}>{currentImageUrl&&<img src={currentImageUrl} alt={`A4 preview of ${imageFiles[imageIndex]?.name}`} draggable={false} style={{left:`${activeEdit.x}%`,top:`${activeEdit.y}%`,transform:`translate(-50%,-50%) scale(${activeEdit.zoom})`}}/>}</div></div>
             {imageFiles.length>1&&<div className="image-pagination"><button type="button" className="chip" disabled={imageIndex===0} onClick={()=>setImageIndex(i=>Math.max(0,i-1))}>Previous image</button><span>{imageIndex+1} / {imageFiles.length}</span><button type="button" className="chip" disabled={imageIndex===imageFiles.length-1} onClick={()=>setImageIndex(i=>Math.min(imageFiles.length-1,i+1))}>Next image</button></div>}
@@ -200,7 +218,20 @@ export default function CustomerUpload({shopCode,shopName,bwPrice,colorPrice}:{s
         <div className="field"><label htmlFor="copies">Copies</label><input id="copies" type="number" min="1" max="100" value={copies} onChange={e=>setCopies(e.target.value)} required/></div>
         <button className="btn btn-full submit-print-btn" disabled={busy||readingPdf||!originalPages}>{busy?"Preparing print-ready PDF…":"Submit print job"}</button>
         {message&&<p className={message.toLowerCase().includes("could not")||message.toLowerCase().includes("failed")?"notice error":"notice"} role="status">{message}</p>}
-        {job&&<div className="notice success"><CheckCircle2 size={16}/> Job ID: {job.id}<br/>Server total: {formatINR(Number(job.price))}<br/>Status: {statusName[job.status]||job.status}</div>}
+        {job&&<div className="job-status-panel" role="status" aria-live="polite" style={{marginTop:16,padding:16,borderRadius:14,border:"1px solid var(--border, #d8e2dc)",background:job.status==="printed"?"#edf8f0":job.status==="failed"?"#fff1f0":job.status==="printing"?"#eef5ff":"#f6f7f8",color:"#18211c"}}>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,flexWrap:"wrap",marginBottom:10}}>
+            <div style={{display:"flex",alignItems:"center",gap:8,fontWeight:700}}>
+              <CheckCircle2 size={19} aria-hidden="true"/>
+              <span>Print job submitted</span>
+            </div>
+            <span className={`job-status status-${job.status}`} style={{fontSize:13,fontWeight:700,whiteSpace:"nowrap"}}>{statusName[job.status]||job.status}</span>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"minmax(0,1fr) auto",gap:"8px 14px",alignItems:"start",fontSize:14}}>
+            <span style={{opacity:.75}}>Job ID</span><strong style={{textAlign:"right",overflowWrap:"anywhere"}}>{job.id}</strong>
+            <span style={{opacity:.75}}>Total</span><strong>{formatINR(Number(job.price))}</strong>
+          </div>
+          <p style={{fontSize:13,lineHeight:1.5,margin:"12px 0 0",opacity:.8}}>{job.status==="printed"?"Your document has been printed.":job.status==="printing"?"Your document is currently being printed.":job.status==="failed"?"Printing could not be completed. Please ask the shop staff for help.":"Your document is in the shop queue. This status updates automatically."}</p>
+        </div>}
       </form>
     </section>
     <aside className="card estimate-card"><div className="estimate-top"><div className="eyebrow">Order summary</div><span className="estimate-icon"><ZoomIn size={19}/></span></div><div className="price-big">{formatINR(total)}</div><p className="muted">Estimated total</p><div className="price-row"><span className="muted">Original pages</span><strong>{originalPages||"—"}</strong></div><div className="price-row"><span className="muted">Selected pages</span><strong>{selectedCount}</strong></div><div className="price-row"><span className="muted">Copies</span><strong>{copyCount}</strong></div><div className="price-row"><span className="muted">Print type</span><strong>{type==="bw"?"Black & white":"Colour"}</strong></div><div className="price-row"><span className="muted">Rate per page</span><strong>{formatINR(unitPrice)}</strong></div><div className="estimate-note">The final price is checked by the server. Images are converted into A4 PDF pages before submission.</div></aside></div>
