@@ -1,6 +1,6 @@
 # SmartPrint V2 — Automatic Windows Print Station
 
-The Windows station polls the SmartPrint V2 queue and automatically sends pending jobs to the configured printer. It processes one job at a time in oldest-first order and does not open a confirmation popup in automatic mode.
+The Windows station polls the SmartPrint V2 queue and processes one job at a time. You can choose confirmation mode or automatic mode at launch, using the same program and local configuration.
 
 ## Requirements
 
@@ -34,18 +34,18 @@ Example config keys:
 - `token`: the one-time pairing token
 - `printer_name`: exact name shown in Windows printer settings
 - `sumatra_path`: SumatraPDF executable path
-- `auto_print`: `true` enables automatic printing; `false` requires confirmation
+- `auto_print`: fallback mode used only when you launch `python print_agent.py` without `--mode`. The two `.bat` launchers override it for that run only.
 
 ## 4. Test safely before live use
 
 1. Make sure the printer has paper, the correct media, and no errors.
 2. Use a non-sensitive, one-page test PDF.
-3. Start the agent from this folder with `python print_agent.py`.
+3. Start exactly one mode from this folder: double-click `Run-Confirmation.bat` to approve jobs individually, or `Run-Automatic.bat` to print without confirmation. You can also run `python print_agent.py --mode confirmation` or `python print_agent.py --mode automatic` from a terminal.
 4. Submit one test job from the customer page.
 5. Verify the file, page count, B&W/colour mode, copies, physical output, and final status in the owner dashboard.
 6. Submit a second test only after checking the first output.
 
-When `auto_print` is enabled (default in this branch), jobs start printing without a popup. Use **Pause auto-print** in the Windows app to stop starting the next job; a job already in progress is allowed to finish. Use **Skip this job** to hide a queued job for the current app session without changing its server status.
+`Run-Automatic.bat` starts jobs without a popup. Use **Pause auto-print** in the Windows app to stop starting the next job; a job already in progress is allowed to finish. `Run-Confirmation.bat` asks before sending a job to Windows. Use **Skip this job** to hide a queued job for the current app session without changing its server status. Do not run both launchers at once; close the current station before switching modes.
 
 ## Behavior and safety notes
 
