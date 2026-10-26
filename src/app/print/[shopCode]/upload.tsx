@@ -98,8 +98,20 @@ export default function CustomerUpload({shopCode,shopName,bwPrice,colorPrice}:{s
 
   const loadHistory=useCallback(async()=>{
     if(!deviceId)return;
-    try{const response=await fetch(`/api/print-jobs/${shopCode}?deviceId=${encodeURIComponent(deviceId)}`,{cache:"no-store"});const data=await response.json();if(response.ok)setHistory(data.jobs||[]);}
-    catch{/* retry on next refresh */}
+    try{
+      const response=await fetch(`/api/print-jobs/${shopCode}?deviceId=${encodeURIComponent(deviceId)}`,{cache:"no-store"});
+      const data=await response.json();
+      if(response.ok){
+        const latestJobs:Job[]=data.jobs||[];
+        setHistory(latestJobs);
+        // Keep the status panel under Submit in sync with the matching history record.
+        setJob(previous=>{
+          if(!previous)return previous;
+          const latest=latestJobs.find(item=>item.id===previous.id);
+          return latest?{...previous,...latest}:previous;
+        });
+      }
+    }catch{/* retry on next refresh */}
   },[deviceId,shopCode]);
   useEffect(()=>{if(!deviceId)return;void loadHistory();const timer=window.setInterval(()=>void loadHistory(),10000);return()=>window.clearInterval(timer);},[deviceId,loadHistory]);
 
