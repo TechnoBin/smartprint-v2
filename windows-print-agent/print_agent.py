@@ -203,12 +203,12 @@ class PrintAgent:
             return
 
         details = (
-            f"Job ID: {job['id']}\\n"
-            f"File: {job.get('file_name', '')}\\n"
-            f"Pages: {job.get('pages', '')}\\n"
-            f"Type: {'Black & white' if job.get('print_type') == 'bw' else 'Colour'}\\n"
-            f"Copies: {job.get('copies', 1)}\\n"
-            f"Listed price: ₹{float(job.get('price') or 0):.2f}\\n\\n"
+            f"Job ID: {job['id']}\n"
+            f"File: {job.get('file_name', '')}\n"
+            f"Pages: {job.get('pages', '')}\n"
+            f"Type: {'Black & white' if job.get('print_type') == 'bw' else 'Colour'}\n"
+            f"Copies: {job.get('copies', 1)}\n"
+            f"Listed price: ₹{float(job.get('price') or 0):.2f}\n\n"
             "Send this job to the Windows printer queue now?"
         )
 
